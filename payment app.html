@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PayLite — Demo Wallet (HTML/CSS/JS)</title>
+<style>
+  :root {
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --muted: #5f6b74;
+    --accent: #e34140;
+    --success: #16a34a;
+    --maxw: 980px;
+    --radius: 12px;
+    --shadow: 0 6px 18px rgba(17,24,39,0.08);
+    --mono: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--mono);
+    margin: 0;
+    background: linear-gradient(180deg,#f8fafc 0%, var(--bg) 100%);
+    color: #111827;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 36px 16px;
+    min-height:100vh;
+  }
+
+  .app {
+    width: 100%;
+    max-width: var(--maxw);
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 20px;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  header.card {
+    grid-column: 1 / -1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  header .brand {
+    display:flex;
+    gap:12px;
+    align-items:center;
+  }
+  .logo {
+    width:44px;
+    height:44px;
+    background:var(--accent);
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    font-weight:700;
+    font-size:18px;
+    box-shadow: 0 4px 10px rgba(227,65,64,0.12);
+  }
+  h1 { margin:0; font-size:18px; }
+  p.lead { margin:0; color:var(--muted); font-size:13px; }
+
+  /* left column */
+  .sidebar { display:flex; flex-direction:column; gap:14px; }
+  .balance {
+    text-align:center;
+  }
+  .balance .amount {
+    font-size:28px;
+    font-weight:700;
+    margin:8px 0;
+  }
+  .small { font-size:13px; color:var(--muted); margin:0 0 8px 0; }
+
+  .btn {
+    display:inline-block;
+    padding:10px 14px;
+    border-radius: 10px;
+    background:var(--accent);
+    color:white;
+    border:0;
+    cursor:pointer;
+    font-weight:600;
+    font-size:14px;
+  }
+  .btn.ghost {
+    background:transparent;
+    color:var(--accent);
+    border:1px solid rgba(227,65,64,0.12);
+  }
+
+  .field { margin-bottom:10px; }
+  label { display:block; font-size:13px; margin-bottom:6px; color:var(--muted); }
+  input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea, select {
+    width:100%;
+    padding:8px 10px;
+    border-radius:8px;
+    border:1px solid #e6eef2;
+    background:#fcfeff;
+    font-size:14px;
+  }
+
+  .actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+
+  /* right column - content */
+  .content { display:flex; flex-direction:column; gap:14px; }
+  .section-title { display:flex; align-items:center; justify-content:space-between; }
+  .tx-list { list-style:none; padding:0; margin:0; }
+  .tx { padding:10px; border-radius:10px; border:1px solid #f1f5f9; display:flex; justify-content:space-between; gap:12px; margin-bottom:8px; }
+  .tx .meta { color:var(--muted); font-size:13px; }
+  .tx .amt { font-weight:700; }
+
+  .notice { font-size:13px; color:var(--muted); padding:8px; border-radius:8px; background:#fbfdff; border:1px dashed #eaf3f9; }
+
+  .hide { display:none; }
+
+  footer { grid-column: 1 / -1; text-align:center; color:var(--muted); font-size:13px; margin-top:10px; }
+  @media (max-width:880px) {
+    .app { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="PayLite demo app">
+    <header class="card">
+      <div class="brand">
+        <div class="logo">PL</div>
+        <div>
+          <h1>PayLite (Demo)</h1>
+          <p class="lead">Simple wallet prototype — local only</p>
+        </div>
+      </div>
+      <div id="user-area">
+        <!-- filled by JS -->
+        <button class="btn" id="open-auth-btn">Login / Register</button>
+      </div>
+    </header>
+
+    <aside class="card sidebar">
+      <div class="balance" id="balance-card">
+        <div class="small">Current balance</div>
+        <div class="amount" id="balance-amount">GH₵ 0.00</div>
+        <div class="small" id="user-email-display">Not signed in</div>
+      </div>
+
+      <div class="card" style="padding:12px;">
+        <div class="small">Quick actions</div>
+        <div style="margin-top:8px" class="actions">
+          <button class="btn" id="deposit-btn">Deposit</button>
+          <button class="btn ghost" id="transfer-btn">Transfer</button>
+          <button class="btn ghost" id="withdraw-btn">Withdraw</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:12px;">
+        <div class="small">Debug / Helpers</div>
+        <div style="margin-top:8px" class="actions">
+          <button class="btn ghost" id="seed-btn">Create demo users</button>
+          <button class="btn ghost" id="clear-btn">Clear local data</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="card content">
+      <!-- Auth modal area -->
+      <div id="auth-pane" class="card hide" style="padding:12px;">
+        <div style="display:flex; gap:8px; align-items:center; justify-content:space-between;">
+          <strong>Sign in / Register</strong>
+          <button class="btn ghost" id="close-auth">Close</button>
+        </div>
+        <div style="display:flex; gap:12px; margin-top:12px;">
+          <div style="flex:1;">
+            <div class="field">
+              <label for="reg-email">Email</label>
+              <input id="reg-email" type="email" placeholder="you@example.com">
+            </div>
+            <div class="field">
+              <label for="reg-password">Password</label>
+              <input id="reg-password" type="password" placeholder="password">
+            </div>
+            <div class="field">
+              <label for="reg-name">Full name</label>
+              <input id="reg-name" type="text" placeholder="Your name">
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn" id="register-btn">Register</button>
+              <button class="btn ghost" id="login-btn">Login</button>
+            </div>
+            <p class="small" style="margin-top:10px">This demo stores data locally in your browser. Do not use real passwords.</p>
+            <div id="auth-feedback" class="small" style="color: #b91c1c;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Forms for deposit, transfer, withdraw (only visible when user signed in) -->
+      <div id="forms-area" class="">
+        <div class="section-title">
+          <strong>Actions & Transactions</strong>
+          <div class="small" id="wallet-currency">Currency: GHS</div>
+        </div>
+
+        <div id="deposit-form" class="card hide">
+          <strong>Deposit (Mock)</strong>
+          <div class="field">
+            <label>Amount (GH₵)</label>
+            <input id="deposit-amount" type="number" step="0.01" min="0.1" value="20">
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn" id="do-deposit">Add money</button>
+            <button class="btn ghost" id="cancel-deposit">Cancel</button>
+          </div>
+          <p class="small notice" style="margin-top:8px">This is a simulated deposit (no real provider).</p>
+        </div>
+
+        <div id="transfer-form" class="card hide">
+          <strong>Transfer to another user</strong>
+          <div class="field">
+            <label>Recipient email</label>
+            <input id="transfer-to" type="email" placeholder="friend@example.com">
+          </div>
+          <div class="field">
+            <label>Amount (GH₵)</label>
+            <input id="transfer-amount" type="number" step="0.01" min="0.1" value="5">
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn" id="do-transfer">Send</button>
+            <button class="btn ghost" id="cancel-transfer">Cancel</button>
+          </div>
+          <div id="transfer-feedback" class="small" style="margin-top:8px;color:#b91c1c"></div>
+        </div>
+
+        <div id="withdraw-form" class="card hide">
+          <strong>Withdraw (Mock)</strong>
+          <div class="field">
+            <label>Amount (GH₵)</label>
+            <input id="withdraw-amount" type="number" step="0.01" min="0.1" value="10">
+          </div>
+          <div class="field">
+            <label>Destination note</label>
+            <input id="withdraw-dest" type="text" placeholder="Bank / MoMo number">
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn" id="do-withdraw">Request Withdraw</button>
+            <button class="btn ghost" id="cancel-withdraw">Cancel</button>
+          </div>
+          <p class="small notice" style="margin-top:8px">Withdrawals are simulated and immediately marked completed here.</p>
+        </div>
+
+        <div class="card" style="padding:12px;">
+          <div class="section-title">
+            <strong>Transaction history</strong>
+            <div class="small">Last 50</div>
+          </div>
+          <ul id="tx-list" class="tx-list" aria-live="polite"></ul>
+        </div>
+      </div>
+
+      <footer class="small">PayLite demo — not for production</footer>
+    </main>
+  </div>
+
+<script>
+/*
+  Simple client-only wallet demo.
+  Data model in localStorage:
+    - users: {email: {password, fullName, wallet:{balance_cents}, transactions:[] } }
+    - session: {email}
+  All amounts stored as integer cents to avoid float issues.
+*/
+
+const L = {
+  get(key){ try{ return JSON.parse(localStorage.getItem(key)); }catch(e){ return null; } },
+  set(key,val){ localStorage.setItem(key, JSON.stringify(val)); },
+  del(key){ localStorage.removeItem(key); }
+};
+
+const STORAGE_USERS = 'paylite_users_v1';
+const STORAGE_SESSION = 'paylite_session_v1';
+
+function cents(ghs) {
+  // convert number to integer cents (2 decimal places)
+  return Math.round(Number(ghs) * 100);
+}
+function fromCents(c){ return (Number(c)/100).toFixed(2); }
+
+function getUsers(){
+  return L.get(STORAGE_USERS) || {};
+}
+function saveUsers(u){ L.set(STORAGE_USERS, u); }
+
+function getSession(){ return L.get(STORAGE_SESSION) || null; }
+function saveSession(session){ L.set(STORAGE_SESSION, session); }
+function clearSession(){ L.del(STORAGE_SESSION); }
+
+function ensureUserData(email){
+  const users = getUsers();
+  if(!users[email]) {
+    users[email] = { password: '', fullName:'', wallet:{balance_cents:0}, transactions:[] };
+    saveUsers(users);
+  }
+  return users[email];
+}
+
+function createUser(email, password, fullName){
+  const users = getUsers();
+  if(users[email]) throw new Error('User already exists');
+  users[email] = {
+    password: password || '',
+    fullName: fullName || '',
+    wallet: { balance_cents: 0 },
+    transactions: []
+  };
+  saveUsers(users);
+  return users[email];
+}
+
+function authenticate(email, password){
+  const users = getUsers();
+  const u = users[email];
+  if(!u) return false;
+  return u.password === password;
+}
+
+function currentUser(){
+  const s = getSession();
+  if(!s) return null;
+  const users = getUsers();
+  return users[s.email] ? { email: s.email, ...users[s.email] } : null;
+}
+
+function pushTransaction(email, type, amountCents, meta='') {
+  const users = getUsers();
+  const u = users[email];
+  if(!u) throw new Error('User not found');
+
+  const tx = {
+    id: 'tx_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    type,
+    amount_cents: amountCents,
+    balance_after: u.wallet.balance_cents,
+    meta,
+    created_at: new Date().toISOString()
+  };
+  u.transactions = u.transactions || [];
+  u.transactions.unshift(tx);
+  users[email] = u;
+  saveUsers(users);
+  return tx;
+}
+
+/* ---------- UI helpers ---------- */
+
+const el = (id)=>document.getElementById(id);
+const show = (id)=>el(id).classList.remove('hide');
+const hide = (id)=>el(id).classList.add('hide');
+
+function renderHeader(){
+  const s = getSession();
+  const userArea = el('user-area');
+  userArea.innerHTML = '';
+  if(s && s.email){
+    const users = getUsers();
+    const u = users[s.email];
+    const info = document.createElement('div');
+    info.style.display='flex';
+    info.style.gap='12px';
+    info.style.alignItems='center';
+    info.innerHTML = \`
+      <div style="text-align:right">
+        <div style="font-weight:700">\${u.fullName || s.email}</div>
+        <div style="font-size:12px;color:var(--muted)">\${s.email}</div>
+      </div>
+    \`;
+    const logoutBtn = document.createElement('button');
+    logoutBtn.className='btn ghost';
+    logoutBtn.textContent='Logout';
+    logoutBtn.onclick = ()=>{ clearSession(); refreshUI(); };
+
+    userArea.appendChild(info);
+    userArea.appendChild(logoutBtn);
+  } else {
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.id = 'open-auth-btn-2';
+    btn.textContent = 'Login / Register';
+    btn.onclick = ()=> openAuth();
+    userArea.appendChild(btn);
+  }
+}
+
+function renderBalance(){
+  const cur = currentUser();
+  const amtEl = el('balance-amount');
+  const emailEl = el('user-email-display');
+  if(!cur){
+    amtEl.textContent = 'GH₵ 0.00';
+    emailEl.textContent = 'Not signed in';
+    hide('deposit-form'); hide('transfer-form'); hide('withdraw-form');
+  } else {
+    amtEl.textContent = 'GH₵ ' + fromCents(cur.wallet.balance_cents);
+    emailEl.textContent = cur.email;
+    // show mini forms
+  }
+  renderTxList();
+}
+
+function renderTxList(){
+  const list = el('tx-list'); list.innerHTML = '';
+  const cur = currentUser();
+  if(!cur){ list.innerHTML = '<li class="small">Sign in to see transactions</li>'; return; }
+  const txs = cur.transactions || [];
+  if(txs.length===0){ list.innerHTML = '<li class="small">No transactions yet</li>'; return; }
+  txs.slice(0,50).forEach(tx=>{
+    const li = document.createElement('li');
+    li.className = 'tx';
+    const left = document.createElement('div');
+    left.innerHTML = \`<div style="font-weight:600">\${tx.type.replace('_',' ')}</div><div class="meta">\${tx.meta}</div>\`;
+    const right = document.createElement('div');
+    right.style.textAlign='right';
+    const sign = (tx.type==='transfer_out' || tx.type==='withdrawal') ? '-' : '+';
+    right.innerHTML = \`<div class="amt">\${sign} GH₵ \${fromCents(tx.amount_cents)}</div><div class="meta">\${new Date(tx.created_at).toLocaleString()}</div>\`;
+    li.appendChild(left); li.appendChild(right);
+    list.appendChild(li);
+  });
+}
+
+/* ---------- Actions (deposit/transfer/withdraw) ---------- */
+
+async function depositAction(amountGhs){
+  const s = getSession(); if(!s) throw new Error('No session');
+  const amountC = cents(amountGhs);
+  const users = getUsers();
+  users[s.email].wallet.balance_cents += amountC;
+  saveUsers(users);
+  // ledger
+  pushTransaction(s.email, 'deposit', amountC, 'Mock deposit');
+  refreshUI();
+}
+
+async function transferAction(toEmail, amountGhs){
+  const s = getSession(); if(!s) throw new Error('No session');
+  const users = getUsers();
+  if(!users[toEmail]) throw new Error('Recipient not found');
+  const amountC = cents(amountGhs);
+  const me = users[s.email];
+  if(me.wallet.balance_cents < amountC) throw new Error('Insufficient funds');
+  // move funds
+  me.wallet.balance_cents -= amountC;
+  users[toEmail].wallet.balance_cents += amountC;
+  // ledger entries
+  users[s.email] = me;
+  saveUsers(users);
+  pushTransaction(s.email, 'transfer_out', amountC, 'To: ' + toEmail);
+  pushTransaction(toEmail, 'transfer_in', amountC, 'From: ' + s.email);
+  refreshUI();
+}
+
+async function withdrawAction(amountGhs, destination){
+  const s = getSession(); if(!s) throw new Error('No session');
+  const users = getUsers();
+  const amountC = cents(amountGhs);
+  const me = users[s.email];
+  if(me.wallet.balance_cents < amountC) throw new Error('Insufficient funds');
+  me.wallet.balance_cents -= amountC;
+  users[s.email] = me;
+  saveUsers(users);
+  pushTransaction(s.email, 'withdrawal', amountC, 'To: ' + destination);
+  refreshUI();
+}
+
+/* ---------- UI wiring ---------- */
+
+function openAuth(){
+  show('auth-pane');
+  el('auth-feedback').textContent='';
+}
+function closeAuth(){
+  hide('auth-pane');
+  el('reg-email').value=''; el('reg-password').value=''; el('reg-name').value='';
+}
+
+function refreshUI(){
+  renderHeader();
+  renderBalance();
+}
+
+/* Attach event listeners */
+document.addEventListener('click', (e)=>{
+  // open auth
+  if(e.target && e.target.id === 'open-auth-btn') openAuth();
+});
+
+el('open-auth-btn')?.addEventListener('click', openAuth);
+el('close-auth')?.addEventListener('click', closeAuth);
+
+// register
+el('register-btn').addEventListener('click', ()=>{
+  const email = el('reg-email').value.trim().toLowerCase();
+  const pw = el('reg-password').value;
+  const name = el('reg-name').value.trim();
+  try{
+    if(!email || !pw) throw new Error('Email & password required');
+    createUser(email,pw,name);
+    saveSession({ email });
+    el('auth-feedback').style.color = '#15803d';
+    el('auth-feedback').textContent = 'Registered & signed in';
+    setTimeout(()=>{ closeAuth(); refreshUI(); }, 600);
+  }catch(err){
+    el('auth-feedback').style.color = '#b91c1c';
+    el('auth-feedback').textContent = err.message;
+  }
+});
+
+// login
+el('login-btn').addEventListener('click', ()=>{
+  const email = el('reg-email').value.trim().toLowerCase();
+  const pw = el('reg-password').value;
+  if(!email || !pw){ el('auth-feedback').textContent = 'Email & password required'; return; }
+  if(authenticate(email,pw)){
+    saveSession({ email });
+    el('auth-feedback').style.color = '#15803d';
+    el('auth-feedback').textContent = 'Signed in';
+    setTimeout(()=>{ closeAuth(); refreshUI(); }, 400);
+  } else {
+    el('auth-feedback').style.color = '#b91c1c';
+    el('auth-feedback').textContent = 'Wrong email or password';
+  }
+});
+
+// seed demo users
+el('seed-btn').addEventListener('click', ()=>{
+  const users = getUsers();
+  users['alice@example.com'] = {
+    password:'password', fullName:'Alice', wallet:{balance_cents: cents(150)}, transactions: []
+  };
+  users['bob@example.com'] = {
+    password:'password', fullName:'Bob', wallet:{balance_cents: cents(40)}, transactions: []
+  };
+  saveUsers(users);
+  alert('Created demo users: alice@example.com and bob@example.com (password: password)');
+  refreshUI();
+});
+
+// clear all
+el('clear-btn').addEventListener('click', ()=>{
+  if(!confirm('Clear demo data from this browser?')) return;
+  L.del(STORAGE_USERS); L.del(STORAGE_SESSION);
+  refreshUI();
+  alert('Cleared');
+});
+
+// open deposit form
+el('deposit-btn').addEventListener('click', ()=>{
+  if(!currentUser()){ openAuth(); return; }
+  show('deposit-form'); hide('transfer-form'); hide('withdraw-form');
+});
+el('cancel-deposit').addEventListener('click', ()=>hide('deposit-form'));
+el('do-deposit').addEventListener('click', async ()=>{
+  try{
+    const v = Number(el('deposit-amount').value);
+    if(!v || v <= 0) throw new Error('Enter valid amount');
+    await depositAction(v);
+    alert('Deposit added (mock)');
+    hide('deposit-form');
+  }catch(e){ alert(e.message); }
+});
+
+// transfer
+el('transfer-btn').addEventListener('click', ()=>{
+  if(!currentUser()){ openAuth(); return; }
+  show('transfer-form'); hide('deposit-form'); hide('withdraw-form');
+});
+el('cancel-transfer').addEventListener('click', ()=>hide('transfer-form'));
+el('do-transfer').addEventListener('click', async ()=>{
+  try{
+    const to = el('transfer-to').value.trim().toLowerCase();
+    const amt = Number(el('transfer-amount').value);
+    if(!to || !amt) throw new Error('Enter recipient and amount');
+    await transferAction(to, amt);
+    alert('Transfer successful');
+    hide('transfer-form');
+  }catch(e){ el('transfer-feedback').textContent = e.message; }
+});
+
+// withdraw
+el('withdraw-btn').addEventListener('click', ()=>{
+  if(!currentUser()){ openAuth(); return; }
+  show('withdraw-form'); hide('deposit-form'); hide('transfer-form');
+});
+el('cancel-withdraw').addEventListener('click', ()=>hide('withdraw-form'));
+el('do-withdraw').addEventListener('click', async ()=>{
+  try{
+    const amt = Number(el('withdraw-amount').value);
+    const dest = el('withdraw-dest').value.trim() || 'Unknown';
+    if(!amt || amt <= 0) throw new Error('Enter valid amount');
+    await withdrawAction(amt, dest);
+    alert('Withdrawal requested (mock) and marked completed.');
+    hide('withdraw-form');
+  }catch(e){ alert(e.message); }
+});
+
+el('close-auth').addEventListener('click', closeAuth);
+
+// initial render
+(function init(){
+  renderHeader();
+  renderBalance();
+  // if no users exist, create a sample account for quick testing
+  const users = getUsers();
+  if(Object.keys(users).length === 0){
+    // leave empty to let user seed or register
+  }
+})();
+</script>
+</body>
+</html>
